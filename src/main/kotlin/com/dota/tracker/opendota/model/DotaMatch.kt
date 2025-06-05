@@ -12,5 +12,6 @@ data class DotaMatch(
     val replay_salt: Int,
     val replay_url: String,
     val `throw`: Int,
-    val version: Int
+    val version: Int,
+    val od_data: OdData
 )

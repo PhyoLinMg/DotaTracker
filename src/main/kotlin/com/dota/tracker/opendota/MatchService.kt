@@ -13,5 +13,8 @@ class MatchService(private val client: WebClient) {
         return client.get().uri("matches/$matchId").retrieve().bodyToMono(DotaMatch::class.java)
     }
 
+    fun requestToParse(matchId: String):Mono<Unit> {
+        return client.post().uri("request/$matchId").retrieve().bodyToMono(Unit::class.java)
+    }
 
 }

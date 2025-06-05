@@ -9,6 +9,8 @@ data class HookStats(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
+    val accountId: Int,
+
     val playerName: String,
     val hookHits: Int,
     val hookCasts: Int
