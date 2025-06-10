@@ -14,7 +14,7 @@ import java.time.format.DateTimeFormatter
 class PudgePlayParser(
     val dotaMatch: DotaMatch
 ) {
-    private var totalHooksCast= 0
+    private var totalHooksHit= 0
 
     private var tempTime= 0f
     private var hookCast= false
@@ -22,28 +22,36 @@ class PudgePlayParser(
     @OnCombatLogEntry
     fun onCombatLogEntry(combatLogEntry: CombatLogEntry){
         when(combatLogEntry.type){
-            DOTAUserMessages.DOTA_COMBATLOG_TYPES.DOTA_COMBATLOG_DAMAGE->{
-                val timestamp= combatLogEntry.timestamp
-                if(hookCast && combatLogEntry.attackerName== Pudge.heroName &&
-                    combatLogEntry.inflictorName == Pudge.meatHook &&
-                    !combatLogEntry.isTargetIllusion && Utils.isWithinTimeRange(
-                        timestamp, tempTime
-                    )
-                ){
-                    totalHooksCast++
-                }
-                hookCast= false
-                tempTime= 0f
-            }
             DOTAUserMessages.DOTA_COMBATLOG_TYPES.DOTA_COMBATLOG_ABILITY->{
                 if(combatLogEntry.attackerName== Pudge.heroName && combatLogEntry.inflictorName == Pudge.meatHook){
                     tempTime= combatLogEntry.timestamp
                     hookCast= true
                 }
             }
+            DOTAUserMessages.DOTA_COMBATLOG_TYPES.DOTA_COMBATLOG_DAMAGE->{
+                checkHookTimeout(combatLogEntry.timestamp)
+                val timestamp= combatLogEntry.timestamp
+                if(hookCast && combatLogEntry.attackerName== Pudge.heroName &&
+                    combatLogEntry.inflictorName == Pudge.meatHook &&
+                    combatLogEntry.isTargetHero &&
+                    !combatLogEntry.isTargetIllusion && Utils.isWithinTimeRange(
+                        timestamp, tempTime, thresholdSeconds = 1f
+                    )
+                ){
+                    totalHooksHit++
+                    hookCast= false
+                }
+            }
+
             else -> {}
         }
     }
+    private fun checkHookTimeout(currentTimestamp: Float) {
+        if (hookCast && !Utils.isWithinTimeRange(currentTimestamp, tempTime)) {
+            hookCast = false // Reset if hook didn't hit within timeframe
+        }
+    }
+
 
 
     fun getReplayData(): HookStats {
@@ -52,7 +60,7 @@ class PudgePlayParser(
             accountId = player?.account_id ?: 0,
             matchId = dotaMatch.match_id,
             playerName = player?.personaname ?: "",
-            hookHits = totalHooksCast,
+            hookHits = totalHooksHit,
             hookCasts=player?.ability_uses?.pudge_meat_hook?: 0
         )
     }

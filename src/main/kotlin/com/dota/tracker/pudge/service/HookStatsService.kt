@@ -2,7 +2,9 @@ package com.dota.tracker.pudge.service
 
 import com.dota.tracker.exception.ProcessingException
 import com.dota.tracker.job.JobStatus
+import com.dota.tracker.job.JobStatusEnum
 import com.dota.tracker.job.JobStatusRepository
+import com.dota.tracker.job.JobStatusResult
 import com.dota.tracker.opendota.MatchRepository
 import com.dota.tracker.opendota.model.DotaMatch
 import com.dota.tracker.pudge.model.HookStats
@@ -30,7 +32,7 @@ class HookStatsService(
         val jobId = UUID.randomUUID().toString()
 
         // Save initial job status
-        jobStatusRepository.save(JobStatus(jobId, "PROCESSING", null))
+        jobStatusRepository.save(JobStatus(jobId, JobStatusEnum.SUBMITTED, null))
 
         // Process asynchronously
         processMatchAsync(matchId, jobId)
@@ -58,12 +60,12 @@ class HookStatsService(
             }
             .flatMap { parsedMatchData ->
                 // Step 3: Calculate hook stats
-                updateJobStatus(jobId, "CALCULATING_STATS")
+                updateJobStatus(jobId, JobStatusEnum.CALCULATING.name)
                 val hookStats = pudgeParserRepository.parseReplayFromUrl(parsedMatchData)
 
                 // Step 4: Save to database
-                updateJobStatus(jobId, "SAVING_RESULTS")
-                Mono.fromCallable<HookStats> { hookStatRepository.save(hookStats) }
+                updateJobStatus(jobId, JobStatusEnum.SAVING_RESULT.name)
+                Mono.fromCallable { hookStatRepository.save(hookStats) }
                     .subscribeOn(Schedulers.boundedElastic())
             }
             .doOnSuccess { savedStats ->
@@ -90,7 +92,7 @@ class HookStatsService(
                 Retry.backoff(20, Duration.ofSeconds(30)) // 20 attempts, 30 seconds apart
                     .doBeforeRetry { retrySignal ->
                         val attempt = retrySignal.totalRetries() + 1
-                        updateJobStatus(jobId, "WAITING_FOR_PARSE", "Attempt $attempt/20")
+                        updateJobStatus(jobId, JobStatusEnum.WAITING_FOR_PARSE.name, "Attempt $attempt/20")
                     }
                     .onRetryExhaustedThrow { _, retryExhaustedSignal ->
                         ProcessingException("Match parsing timed out after 20 attempts (10 minutes)")
@@ -104,11 +106,11 @@ class HookStatsService(
     }
 
     private fun completeJob(jobId: String, result: HookStats) {
-        jobStatusRepository.updateStatus(jobId, "COMPLETED", null, result.accountId.toLong())
+        jobStatusRepository.updateStatus(jobId, JobStatusEnum.COMPLETED.name, null, result.accountId.toLong())
     }
 
     private fun failJob(jobId: String, error: String) {
-        jobStatusRepository.updateStatus(jobId, "FAILED", error)
+        jobStatusRepository.updateStatus(jobId, JobStatusEnum.FAILED.name, error)
     }
 
     fun getJobStatus(jobId: String): JobStatus? {
@@ -117,7 +119,7 @@ class HookStatsService(
 
     fun getResult(jobId: String): HookStatsResult? {
         val job = jobStatusRepository.findById(jobId).get()
-        return if (job.status == "COMPLETED" && job.resultId != null) {
+        return if (job.status == JobStatusEnum.COMPLETED && job.resultId != null) {
             val hookStat = hookStatRepository.findById(job.resultId!!).getOrNull()
             hookStat?.let { HookStatsResult.from(it) }
         } else null
