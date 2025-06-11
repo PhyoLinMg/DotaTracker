@@ -6,3 +6,9 @@ services:
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
+      - key: DB_URL
+        value: jdbc:postgresql://db.yqviygbulyotzvfcxqhq.supabase.co:5432/postgres
+      - key: USERNAME
+        value: postgres
+      - key: PASSWORD
+        value: hQkb&6$qjbPTq%se
