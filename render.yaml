@@ -6,3 +6,4 @@ services:
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
+    healthCheckPath: /actuator/health

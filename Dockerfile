@@ -1,10 +1,10 @@
-FROM gradle:8-jdk17 AS build
+# Stage 1: Build
+FROM gradle:8.5-jdk17 AS build
+COPY --chown=gradle:gradle . /app
 WORKDIR /app
-COPY gradle gradle
-COPY gradlew build.gradle.kts settings.gradle.kts ./
-COPY src src
-RUN gradle build -x test --no-daemon
+RUN gradle build --no-daemon
 
+# Stage 2: Run
 FROM openjdk:17-jdk-slim
 RUN addgroup --system spring && adduser --system spring --ingroup spring
 USER spring:spring
