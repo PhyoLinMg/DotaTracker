@@ -10,5 +10,5 @@ interface JobStatusRepository : JpaRepository<JobStatus, String> {
     @Modifying
     @Transactional
     @Query("UPDATE JobStatus j SET j.status = :status, j.details = :details, j.resultId = :resultId, j.updatedAt = :now WHERE j.jobId = :jobId")
-    fun updateStatus(jobId: String, status: String, details: String?, resultId: Long? = null, now: Instant = Instant.now())
+    fun updateStatus(jobId: String, status: JobStatusEnum, details: String?, resultId: Long? = null, now: Instant = Instant.now())
 }

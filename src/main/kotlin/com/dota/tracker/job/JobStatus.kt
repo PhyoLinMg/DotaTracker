@@ -26,7 +26,8 @@ data class JobStatus(
 enum class JobStatusEnum {
     SUBMITTED,
     WAITING_FOR_PARSE,
-    PROCESSING,
+    FETCHING_MATCH_DATA,
+    REQUESTING_PARSE,
     SAVING_RESULT,
     CALCULATING,
     COMPLETED,

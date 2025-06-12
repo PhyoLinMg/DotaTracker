@@ -42,7 +42,7 @@ class HookStatsService(
     @Async("taskExecutor")
     fun processMatchAsync(matchId: String, jobId: String) {
         // Step 1: Get match data
-        updateJobStatus(jobId, "FETCHING_MATCH_DATA")
+        updateJobStatus(jobId, JobStatusEnum.FETCHING_MATCH_DATA)
 
 
         matchRepository.getMatchDetail(matchId)
@@ -52,7 +52,7 @@ class HookStatsService(
                     Mono.just(matchData)
                 } else {
                     // Step 2: Request parsing and poll until complete
-                    updateJobStatus(jobId, "REQUESTING_PARSE")
+                    updateJobStatus(jobId, JobStatusEnum.REQUESTING_PARSE)
                     matchRepository.requestToParse(matchId).then(
                         pollForParsedMatch(matchId, jobId)
                     )
@@ -60,11 +60,11 @@ class HookStatsService(
             }
             .flatMap { parsedMatchData ->
                 // Step 3: Calculate hook stats
-                updateJobStatus(jobId, JobStatusEnum.CALCULATING.name)
+                updateJobStatus(jobId, JobStatusEnum.CALCULATING)
                 val hookStats = pudgeParserRepository.parseReplayFromUrl(parsedMatchData)
 
                 // Step 4: Save to database
-                updateJobStatus(jobId, JobStatusEnum.SAVING_RESULT.name)
+                updateJobStatus(jobId, JobStatusEnum.SAVING_RESULT)
                 Mono.fromCallable { hookStatRepository.save(hookStats) }
                     .subscribeOn(Schedulers.boundedElastic())
             }
@@ -92,7 +92,7 @@ class HookStatsService(
                 Retry.backoff(20, Duration.ofSeconds(30)) // 20 attempts, 30 seconds apart
                     .doBeforeRetry { retrySignal ->
                         val attempt = retrySignal.totalRetries() + 1
-                        updateJobStatus(jobId, JobStatusEnum.WAITING_FOR_PARSE.name, "Attempt $attempt/20")
+                        updateJobStatus(jobId, JobStatusEnum.WAITING_FOR_PARSE, "Attempt $attempt/20")
                     }
                     .onRetryExhaustedThrow { _, retryExhaustedSignal ->
                         ProcessingException("Match parsing timed out after 20 attempts (10 minutes)")
@@ -101,16 +101,16 @@ class HookStatsService(
     }
 
 
-    private fun updateJobStatus(jobId: String, status: String, details: String? = null) {
+    private fun updateJobStatus(jobId: String, status: JobStatusEnum, details: String? = null) {
         jobStatusRepository.updateStatus(jobId, status, details)
     }
 
     private fun completeJob(jobId: String, result: HookStats) {
-        jobStatusRepository.updateStatus(jobId, JobStatusEnum.COMPLETED.name, null, result.accountId.toLong())
+        jobStatusRepository.updateStatus(jobId, JobStatusEnum.COMPLETED, null, result.accountId.toLong())
     }
 
     private fun failJob(jobId: String, error: String) {
-        jobStatusRepository.updateStatus(jobId, JobStatusEnum.FAILED.name, error)
+        jobStatusRepository.updateStatus(jobId, JobStatusEnum.FAILED, error)
     }
 
     fun getJobStatus(jobId: String): JobStatus? {
