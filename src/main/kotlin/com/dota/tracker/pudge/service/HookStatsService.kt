@@ -40,7 +40,7 @@ class HookStatsService(
         return jobId
     }
     @Async("taskExecutor")
-    fun processMatchAsync(matchId: String, jobId: String) {
+    private fun processMatchAsync(matchId: String, jobId: String) {
         // Step 1: Get match data
         updateJobStatus(jobId, JobStatusEnum.FETCHING_MATCH_DATA)
 
@@ -113,17 +113,8 @@ class HookStatsService(
         jobStatusRepository.updateStatus(jobId, JobStatusEnum.FAILED, error)
     }
 
-    fun getJobStatus(jobId: String): JobStatus? {
-        return jobStatusRepository.findById(jobId).get()
+    fun getTop10ByAccuracy(): List<HookStatsResult> {
+        return hookStatRepository.findTop10ByHighestAccuracy()
+            .map { HookStatsResult.from(it) }
     }
-
-    fun getResult(jobId: String): HookStatsResult? {
-        val job = jobStatusRepository.findById(jobId).get()
-        return if (job.status == JobStatusEnum.COMPLETED && job.resultId != null) {
-            val hookStat = hookStatRepository.findById(job.resultId!!).getOrNull()
-            hookStat?.let { HookStatsResult.from(it) }
-        } else null
-    }
-
-
 }

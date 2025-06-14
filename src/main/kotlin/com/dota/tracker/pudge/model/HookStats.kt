@@ -5,8 +5,8 @@ import jakarta.persistence.*
 @Entity
 @Table(name = "hook_stats")
 data class HookStats(
-    @Id val accountId: Int,
-    val matchId:Long,
+    @Id val matchId:Long,
+    val accountId: Int,
     val playerName: String,
     val hookHits: Int,
     val hookCasts: Int
@@ -22,13 +22,15 @@ data class HookStatsResult(
     val totalHooksCast: Int,
     val totalHooksHit: Int,
     val accuracy: Double,
+    val accountId: Int,
 ){
     companion object{
         fun from(hookStats: HookStats) = HookStatsResult(
             hookStats.matchId,
             hookStats.hookCasts,
             hookStats.hookHits,
-            hookStats.accuracy
+            hookStats.accuracy,
+            hookStats.accountId
         )
     }
 }
