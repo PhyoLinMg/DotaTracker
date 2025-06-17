@@ -44,7 +44,6 @@ class HookStatsService(
         // Step 1: Get match data
         updateJobStatus(jobId, JobStatusEnum.FETCHING_MATCH_DATA)
 
-
         matchRepository.getMatchDetail(matchId)
             .flatMap { matchData: DotaMatch ->
                 if (matchData.od_data.has_parsed) {
@@ -60,6 +59,9 @@ class HookStatsService(
             }
             .flatMap { parsedMatchData ->
                 // Step 3: Calculate hook stats
+                if(parsedMatchData.players.find { it.isPudge }== null) {
+                    throw ProcessingException("No Pudge player found in match $matchId")
+                }
                 updateJobStatus(jobId, JobStatusEnum.CALCULATING)
                 val hookStats = pudgeParserRepository.parseReplayFromUrl(parsedMatchData)
 
