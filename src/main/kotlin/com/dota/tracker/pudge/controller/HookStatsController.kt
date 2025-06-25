@@ -1,7 +1,7 @@
 package com.dota.tracker.pudge.controller
 
 import com.dota.tracker.job.ProcessingResponse
-import com.dota.tracker.pudge.model.HookStatsResult
+
 import com.dota.tracker.pudge.service.HookStatsService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -30,11 +30,6 @@ class HookStatsController(
         return ResponseEntity.ok(ProcessingResponse(jobId, "SUBMITTED"))
     }
 
-    @GetMapping
-    fun getHookLeaderBoard(): ResponseEntity<List<HookStatsResult>>{
-        val hookStats = hookStatsService.getTop10ByAccuracy()
-        return ResponseEntity.ok(hookStats)
-    }
 
 
 }

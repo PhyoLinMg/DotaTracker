@@ -11,9 +11,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 @Repository
-class PudgeParserRepository(
-    private val hookStatsRepository: HookStatsRepository
-) {
+class PudgeParserRepository{
 
     fun parseReplayFromUrl(dotaMatch: DotaMatch): HookStats {
         val connection = URL(dotaMatch.replay_url).openConnection() as HttpURLConnection
