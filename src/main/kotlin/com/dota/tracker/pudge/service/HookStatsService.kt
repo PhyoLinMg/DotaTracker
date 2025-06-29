@@ -95,7 +95,7 @@ class HookStatsService(
                 }
             }
             .retryWhen(
-                Retry.backoff(20, Duration.ofSeconds(30)) // 20 attempts, 30 seconds apart
+                Retry.backoff(20, Duration.ofSeconds(60)) // 20 attempts,60 seconds apart
                     .doBeforeRetry { retrySignal ->
                         val attempt = retrySignal.totalRetries() + 1
                         updateJobStatus(jobId, JobStatusEnum.WAITING_FOR_PARSE, "Attempt $attempt/20")

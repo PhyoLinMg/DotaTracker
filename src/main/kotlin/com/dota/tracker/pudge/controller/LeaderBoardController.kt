@@ -36,8 +36,8 @@ class LeaderboardController(
     @GetMapping
     fun getLeaderboard(
         @RequestParam(defaultValue = "0") page: Int,
-        @RequestParam(defaultValue = "50") size: Int,
-        @RequestParam(defaultValue = "50") minCasts: Long
+        @RequestParam(defaultValue = "10") size: Int,
+        @RequestParam(defaultValue = "10") minCasts: Long
     ): ResponseEntity<Page<LeaderBoardResponse>> {
         if (size > 100) {
             return ResponseEntity.badRequest().build()

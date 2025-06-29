@@ -22,4 +22,14 @@ class JobController(
         val jobs= service.getAllJobs(pageable)
         return ResponseEntity( jobs, HttpStatus.OK)
     }
+
+    @GetMapping("/retry")
+    fun retryJob(@RequestParam jobId: String): ResponseEntity<String> {
+        return try {
+            service.retryFailed(jobId)
+            ResponseEntity.ok("Job $jobId retried successfully")
+        } catch (e: Exception) {
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to retry job $jobId: ${e.message}")
+        }
+    }
 }
