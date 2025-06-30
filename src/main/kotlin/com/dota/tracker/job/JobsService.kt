@@ -3,6 +3,7 @@ package com.dota.tracker.job
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 @Service
 class JobsService(
@@ -15,6 +16,7 @@ class JobsService(
         }
     }
 
+    @Transactional
     fun retryFailed(jobId: String): ProcessingResponse {
         val jobStatus = jobStatusRepository.findById(jobId)
             .orElseThrow { IllegalArgumentException("Job with ID $jobId not found") }

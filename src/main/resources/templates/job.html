@@ -361,7 +361,13 @@
     let failedJobsCount = 0;
 
     function formatDateTime(dateTimeString) {
+        if (!dateTimeString) return '-';
         const date = new Date(dateTimeString);
+
+        if(isNaN(date.getTime())) {
+            console.error('Invalid date format:', dateTimeString);
+            return '-';
+        }
         return date.toLocaleString('en-US', {
             year: 'numeric',
             month: 'short',
@@ -499,6 +505,10 @@
         failedJobsCount = jobs.filter(job => job.status === 'FAILED').length;
 
         jobs.forEach(job => {
+            if(!job || typeof job !== 'object') {
+                console.error('Invalid job data:', job);
+                return;
+            }
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td><strong>${job.jobId}</strong></td>
