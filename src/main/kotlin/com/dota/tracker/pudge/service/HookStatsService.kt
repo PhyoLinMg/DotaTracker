@@ -4,13 +4,12 @@ import com.dota.tracker.exception.ProcessingException
 import com.dota.tracker.job.JobStatus
 import com.dota.tracker.job.JobStatusEnum
 import com.dota.tracker.job.JobStatusRepository
-import com.dota.tracker.job.JobStatusResult
 import com.dota.tracker.opendota.MatchRepository
 import com.dota.tracker.opendota.model.DotaMatch
 import com.dota.tracker.pudge.model.HookStats
-import com.dota.tracker.pudge.model.HookStatsResult
 import com.dota.tracker.pudge.repository.HookStatsRepository
 import com.dota.tracker.pudge.repository.PudgeParserRepository
+import org.springframework.cache.CacheManager
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
@@ -18,7 +17,7 @@ import reactor.core.scheduler.Schedulers
 import reactor.util.retry.Retry
 import java.time.Duration
 import java.util.UUID
-import kotlin.jvm.optionals.getOrNull
+
 
 @Service
 class HookStatsService(
@@ -26,7 +25,12 @@ class HookStatsService(
     private val jobStatusRepository: JobStatusRepository,
     private val matchRepository: MatchRepository,
     private val pudgeParserRepository: PudgeParserRepository,
+    private val cacheManager: CacheManager
 ) {
+    companion object {
+        private const val LEADERBOARD_CACHE = "hookStatsLeaderboard"
+        private const val CACHE_TTL_MINUTES = 15L
+    }
 
     fun submitMatchProcessing(matchId:String): String{
         val jobId = UUID.randomUUID().toString()
@@ -44,7 +48,6 @@ class HookStatsService(
         // Step 1: Get match data
         updateJobStatus(jobId, JobStatusEnum.FETCHING_MATCH_DATA)
 
-
         matchRepository.getMatchDetail(matchId)
             .flatMap { matchData: DotaMatch ->
                 if (matchData.od_data.has_parsed) {
@@ -60,6 +63,9 @@ class HookStatsService(
             }
             .flatMap { parsedMatchData ->
                 // Step 3: Calculate hook stats
+                if(parsedMatchData.players.find { it.isPudge }== null) {
+                    throw ProcessingException("No Pudge player found in match $matchId")
+                }
                 updateJobStatus(jobId, JobStatusEnum.CALCULATING)
                 val hookStats = pudgeParserRepository.parseReplayFromUrl(parsedMatchData)
 
@@ -89,7 +95,7 @@ class HookStatsService(
                 }
             }
             .retryWhen(
-                Retry.backoff(20, Duration.ofSeconds(30)) // 20 attempts, 30 seconds apart
+                Retry.backoff(20, Duration.ofSeconds(60)) // 20 attempts,60 seconds apart
                     .doBeforeRetry { retrySignal ->
                         val attempt = retrySignal.totalRetries() + 1
                         updateJobStatus(jobId, JobStatusEnum.WAITING_FOR_PARSE, "Attempt $attempt/20")
@@ -113,8 +119,4 @@ class HookStatsService(
         jobStatusRepository.updateStatus(jobId, JobStatusEnum.FAILED, error)
     }
 
-    fun getTop10ByAccuracy(): List<HookStatsResult> {
-        return hookStatRepository.findTop10ByHighestAccuracy()
-            .map { HookStatsResult.from(it) }
-    }
 }

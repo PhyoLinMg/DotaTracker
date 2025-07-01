@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Status Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .controls {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .refresh-btn, .retry-btn {
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+
+        .retry-btn {
+            background: linear-gradient(135deg, #fd7e14 0%, #e63946 100%);
+            box-shadow: 0 4px 15px rgba(253, 126, 20, 0.3);
+        }
+
+        .retry-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(253, 126, 20, 0.4);
+        }
+
+        .retry-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .status-legend {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+
+        .table-container {
+            padding: 30px;
+            overflow-x: auto;
+        }
+
+        .jobs-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .jobs-table thead {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+            color: white;
+        }
+
+        .jobs-table th,
+        .jobs-table td {
+            padding: 15px 20px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .jobs-table th {
+            font-weight: 600;
+            font-size: 0.95rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .jobs-table tbody tr {
+            transition: all 0.3s ease;
+        }
+
+        .jobs-table tbody tr:hover {
+            background: #f8f9fa;
+            transform: scale(1.001);
+        }
+
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 500;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-block;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .status-completed {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .status-failed {
+            background: linear-gradient(135deg, #dc3545 0%, #e74c3c 100%);
+            color: white;
+        }
+
+        .status-other {
+            background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+            color: #212529;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .pagination button {
+            padding: 10px 20px;
+            border: 2px solid #dee2e6;
+            background: white;
+            color: #495057;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+            transform: translateY(-1px);
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination button.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .page-info {
+            font-weight: 500;
+            color: #6c757d;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #6c757d;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 30px;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .status-legend {
+                justify-content: center;
+            }
+
+            .jobs-table {
+                font-size: 0.9rem;
+            }
+
+            .jobs-table th,
+            .jobs-table td {
+                padding: 10px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>Job Status Dashboard</h1>
+        <p>Monitor and track job processing status in real-time</p>
+    </div>
+
+    <div class="controls">
+        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+            <button class="refresh-btn" onclick="loadJobs()">
+                <span>🔄</span>
+                <span>Refresh Data</span>
+            </button>
+            <button class="retry-btn" id="retryBtn" onclick="retryFailedJobs()">
+                <span>🔄</span>
+                <span>Retry Failed Jobs</span>
+            </button>
+        </div>
+        <div class="status-legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);"></div>
+                <span>Completed</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);"></div>
+                <span>Processing</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #dc3545 0%, #e74c3c 100%);"></div>
+                <span>Failed</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <div id="loading" class="loading" style="display: none;">
+            Loading jobs data...
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+
+        <table class="jobs-table" id="jobsTable" style="display: none;">
+            <thead>
+            <tr>
+                <th>Job ID</th>
+                <th>Status</th>
+                <th>Details</th>
+                <th>Result ID</th>
+                <th>Created At</th>
+                <th>Updated At</th>
+            </tr>
+            </thead>
+            <tbody id="jobsTableBody">
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pagination" id="pagination" style="display: none;">
+        <button id="prevBtn" onclick="changePage(-1)">← Previous</button>
+        <span class="page-info" id="pageInfo"></span>
+        <button id="nextBtn" onclick="changePage(1)">Next →</button>
+    </div>
+</div>
+
+<script>
+    let currentPage = 0;
+    let totalPages = 0;
+    let totalElements = 0;
+    let failedJobsCount = 0;
+
+    function formatDateTime(dateTimeString) {
+        if (!dateTimeString) return '-';
+        const date = new Date(dateTimeString);
+
+        if(isNaN(date.getTime())) {
+            console.error('Invalid date format:', dateTimeString);
+            return '-';
+        }
+        return date.toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    }
+
+    function getStatusClass(status) {
+        switch (status) {
+            case 'COMPLETED':
+                return 'status-completed';
+            case 'FAILED':
+                return 'status-failed';
+            default:
+                return 'status-other';
+        }
+    }
+
+    function formatStatus(status) {
+        return status.replace(/_/g, ' ').toLowerCase()
+            .replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    async function retryFailedJobs() {
+        const retryBtn = document.getElementById('retryBtn');
+        const originalText = retryBtn.innerHTML;
+
+        retryBtn.disabled = true;
+        retryBtn.innerHTML = '<span>⏳</span><span>Retrying...</span>';
+
+        try {
+            const response = await fetch('/api/jobs/retry-failed', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            // Show success message
+            const successMsg = document.createElement('div');
+            successMsg.className = 'success-message';
+            successMsg.style.cssText = `
+                background: #d4edda;
+                color: #155724;
+                padding: 15px;
+                border-radius: 8px;
+                margin: 20px 30px;
+                border: 1px solid #c3e6cb;
+                text-align: center;
+            `;
+            successMsg.textContent = `Successfully retried ${result.retriedCount || 0} failed jobs`;
+
+            document.querySelector('.table-container').insertBefore(
+                successMsg,
+                document.querySelector('.table-container').firstChild
+            );
+
+            setTimeout(() => {
+                successMsg.remove();
+            }, 5000);
+
+            // Refresh the jobs list
+            await loadJobs(currentPage);
+
+        } catch (err) {
+            const error = document.getElementById('error');
+            error.style.display = 'block';
+            error.textContent = `Error retrying failed jobs: ${err.message}`;
+            console.error('Error retrying failed jobs:', err);
+        } finally {
+            retryBtn.disabled = false;
+            retryBtn.innerHTML = originalText;
+        }
+    }
+
+    async function loadJobs(page = 0) {
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const table = document.getElementById('jobsTable');
+        const pagination = document.getElementById('pagination');
+
+        loading.style.display = 'block';
+        error.style.display = 'none';
+        table.style.display = 'none';
+        pagination.style.display = 'none';
+
+        try {
+            const response = await fetch(`/api/jobs?page=${page}`);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            currentPage = data.number;
+            totalPages = data.totalPages;
+            totalElements = data.totalElements;
+
+            displayJobs(data.content);
+            updatePagination();
+
+            loading.style.display = 'none';
+            table.style.display = 'table';
+            pagination.style.display = 'flex';
+
+        } catch (err) {
+            loading.style.display = 'none';
+            error.style.display = 'block';
+            error.textContent = `Error loading jobs: ${err.message}`;
+            console.error('Error loading jobs:', err);
+        }
+    }
+
+    function displayJobs(jobs) {
+        const tbody = document.getElementById('jobsTableBody');
+        tbody.innerHTML = '';
+
+        if (jobs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 30px; color: #6c757d;">No jobs found</td></tr>';
+            updateRetryButton();
+            return;
+        }
+
+        // Count failed jobs
+        failedJobsCount = jobs.filter(job => job.status === 'FAILED').length;
+
+        jobs.forEach(job => {
+            if(!job || typeof job !== 'object') {
+                console.error('Invalid job data:', job);
+                return;
+            }
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><strong>${job.jobId}</strong></td>
+                <td>
+                    <span class="status-badge ${getStatusClass(job.status)}">
+                        ${formatStatus(job.status)}
+                    </span>
+                </td>
+                <td>${job.details || '-'}</td>
+                <td>${job.resultId || '-'}</td>
+                <td>${formatDateTime(job.createdAt)}</td>
+                <td>${formatDateTime(job.updatedAt)}</td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        updateRetryButton();
+    }
+
+    function updateRetryButton() {
+        const retryBtn = document.getElementById('retryBtn');
+        retryBtn.disabled = failedJobsCount === 0;
+
+        if (failedJobsCount === 0) {
+            retryBtn.innerHTML = '<span>🔄</span><span>No Failed Jobs</span>';
+        } else {
+            retryBtn.innerHTML = `<span>🔄</span><span>Retry Failed Jobs (${failedJobsCount})</span>`;
+        }
+    }
+
+    function updatePagination() {
+        const pageInfo = document.getElementById('pageInfo');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        pageInfo.textContent = `Page ${currentPage + 1} of ${totalPages} (${totalElements} total jobs)`;
+
+        prevBtn.disabled = currentPage === 0;
+        nextBtn.disabled = currentPage >= totalPages - 1;
+    }
+
+    function changePage(direction) {
+        const newPage = currentPage + direction;
+        if (newPage >= 0 && newPage < totalPages) {
+            loadJobs(newPage);
+        }
+    }
+
+    // Load initial data
+    loadJobs();
+</script>
+</body>
+</html>

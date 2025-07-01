@@ -15,11 +15,22 @@ import org.springframework.web.bind.annotation.RestController
 class JobController(
     private val service: JobsService
 ) {
-
     @GetMapping
     fun getJobs(@RequestParam(required = false) page: Int = 0): ResponseEntity<Page<JobStatusResult>>{
         val pageable= PageRequest.of(page, 10, Sort.by("createdAt").descending())
         val jobs= service.getAllJobs(pageable)
         return ResponseEntity( jobs, HttpStatus.OK)
+    }
+
+    @GetMapping("/retry")
+    fun retryJob(@RequestParam jobId: String): ResponseEntity<String> {
+
+        if(jobId.isBlank()) return ResponseEntity.badRequest().body("Job ID must not be empty")
+        return try {
+            service.retryFailed(jobId)
+            ResponseEntity.ok("Job $jobId retried successfully")
+        } catch (e: Exception) {
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to retry job $jobId: ${e.message}")
+        }
     }
 }

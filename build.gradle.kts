@@ -23,6 +23,8 @@ dependencies {
 	implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 	implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
+	implementation("org.springframework.boot:spring-boot-starter-security")
+	implementation("com.github.ben-manes.caffeine:caffeine")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	runtimeOnly("org.postgresql:postgresql")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
@@ -32,6 +34,7 @@ dependencies {
 	implementation("com.skadistats:clarity:3.1.1")
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 	implementation("org.apache.commons:commons-compress:1.26.0")
+	implementation("org.springframework.boot:spring-boot-starter-cache")
 }
 
 kotlin {
