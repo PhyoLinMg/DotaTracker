@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api")
 class DashboardApiController(
     private val systemMetricsService: SystemMetricsService,
-    private val leaderBoardService: LeaderBoardService,
     private val cacheManager: CacheManager
 ) {
 

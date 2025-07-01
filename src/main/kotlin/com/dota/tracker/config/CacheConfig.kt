@@ -15,12 +15,14 @@ import java.time.Duration
 class CacheConfig {
     @Bean
     fun cacheManager(): CacheManager {
-        return CaffeineCacheManager().apply {
+        val cacheManager = CaffeineCacheManager()
+        cacheManager.setCaffeine(
             Caffeine.newBuilder()
                 .maximumSize(10_000) // Max 10,000 entries
                 .expireAfterWrite(Duration.ofMinutes(30)) // Expire after 30 minutes
                 .expireAfterAccess(Duration.ofMinutes(10)) // Expire if not accessed for 10 minutes
-                .recordStats()
-        }
+                .recordStats() // Enable statistics for monitoring
+        )
+        return cacheManager
     }
 }
